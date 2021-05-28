@@ -188,13 +188,13 @@ create_stream ::= createkw temp(T) STREAM ifnotexists(E) nm(Y) dbnm(Z). {
    sqlite3StartStream(pParse,&Y,&Z,T,0,0,E);
 }
 
-create_stream_args ::=  LP columnlist conslist_opt(X) RP(E) PORT INTEGER(F) WINDOWSLIDE INTEGER(G) WINDOWSIZE INTEGER(H) RECORDSWINDOW. {
-  sqlite3EndStream(pParse,&X,&E,&F,&G,&H,1);
+
+
+create_stream_args ::=  LP columnlist conslist_opt(X) RP(E) PORT INTEGER(F) SLIDE INTEGER(G). {
+  sqlite3EndStream(pParse,&X,&E,&F,&G,0,0);
+
 }
 
-create_stream_args ::=  LP columnlist conslist_opt(X) RP(E) PORT INTEGER(F) WINDOWSLIDE INTEGER(G) WINDOWSIZE INTEGER(H) TIMINGWINDOW. {
-  sqlite3EndStream(pParse,&X,&E,&F,&G,&H,0);
-}
 
 
 

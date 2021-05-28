@@ -23,6 +23,8 @@
 **     ROLLBACK
 */
 #include "sqliteInt.h"
+#include <pthread.h>
+
 
 #ifndef SQLITE_OMIT_SHARED_CACHE
 /*
@@ -2408,6 +2410,17 @@ static void markExprListImmutable(ExprList *pList){
 
 
 
+void* foo(void* p){
+    // Print value received as argument:
+
+    printf("Value recevied as argument in starting routine: ");
+    printf("Value recevied as argument in starting routine: ");
+    printf("Value recevied as argument in starting routine: ");
+
+
+    // Return reference to global variable:
+    pthread_exit(0);
+}
 
 void sqlite3EndStream(
         Parse *pParse,          /* Parse context */
@@ -2421,7 +2434,14 @@ void sqlite3EndStream(
 ){
     sqlite3EndTable(pParse,pCons,pEnd,0,0);
     //TODO Create thread that listens to portNumber and Inserts into stream table and deletes regarding given window
+    pthread_t id;
+    printf("abc");
+    int a=pthread_create(&id, NULL, foo, 0);
+    printf("%d",a);
+
 }
+
+
 /*
 ** This routine is called to report the final ")" that terminates
 ** a CREATE TABLE statement.
