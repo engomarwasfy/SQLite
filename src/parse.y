@@ -180,8 +180,22 @@ cmd ::= ROLLBACK trans_opt TO savepoint_opt nm(X). {
   sqlite3Savepoint(pParse, SAVEPOINT_ROLLBACK, &X);
 }
 
+
+///////////////////// The CREATE STREAM statement ////////////////////////////
+
+cmd ::= create_stream create_table_args.
+create_stream ::= createkw temp(T) STREAM ifnotexists(E) nm(Y) dbnm(Z). {
+   sqlite3StartTable(pParse,&Y,&Z,T,0,0,E);
+}
+
+
+
+
 ///////////////////// The CREATE TABLE statement ////////////////////////////
 //
+
+
+
 cmd ::= create_table create_table_args.
 create_table ::= createkw temp(T) TABLE ifnotexists(E) nm(Y) dbnm(Z). {
    sqlite3StartTable(pParse,&Y,&Z,T,0,0,E);
@@ -472,6 +486,15 @@ cmd ::= DROP VIEW ifexists(E) fullname(X). {
   sqlite3DropTable(pParse, X, 1, E);
 }
 %endif  SQLITE_OMIT_VIEW
+
+
+//////////////////////// The CONTINUOUS SELECT statement /////////////////////////////////
+//
+cmd ::=  CONTINUOUS select(X).  {
+  SelectDest dest = {SRT_Output, 0, 0, 0, 0, 0, 0};
+  sqlite3Select(pParse, X, &dest);
+  sqlite3SelectDelete(pParse->db, X);
+}
 
 //////////////////////// The SELECT statement /////////////////////////////////
 //
