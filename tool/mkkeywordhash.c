@@ -319,6 +319,11 @@ static Keyword aKeywordTable[] = {
   { "WINDOW",           "TK_WINDOW",       WINDOWFUNC,       3      },
   { "WITH",             "TK_WITH",         CTE,              4      },
   { "WITHOUT",          "TK_WITHOUT",      ALWAYS,           1      },
+  { "PORT",          "TK_PORT",      ALWAYS,           1      },
+  { "WINDOWSLIDE",          "TK_WINDOWSLIDE",      ALWAYS,           1      },
+  { "WINDOWSIZE",          "TK_WINDOWSIZE",      ALWAYS,           1      },
+  { "RECORDSWINDOW",          "TK_RECORDSWINDOW",      ALWAYS,           1      },
+  { "TIMINGWINDOW",          "TK_TIMINGWINDOW",      ALWAYS,           1      }
 };
 
 /* Number of keywords */

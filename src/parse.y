@@ -183,11 +183,18 @@ cmd ::= ROLLBACK trans_opt TO savepoint_opt nm(X). {
 
 ///////////////////// The CREATE STREAM statement ////////////////////////////
 
-cmd ::= create_stream create_table_args.
+cmd ::= create_stream create_stream_args.
 create_stream ::= createkw temp(T) STREAM ifnotexists(E) nm(Y) dbnm(Z). {
-   sqlite3StartTable(pParse,&Y,&Z,T,0,0,E);
+   sqlite3StartStream(pParse,&Y,&Z,T,0,0,E);
 }
 
+create_stream_args ::=  LP columnlist conslist_opt(X) RP(E) PORT INTEGER(F) WINDOWSLIDE INTEGER(G) WINDOWSIZE INTEGER(H) RECORDSWINDOW. {
+  sqlite3EndStream(pParse,&X,&E,&F,&G,&H,1);
+}
+
+create_stream_args ::=  LP columnlist conslist_opt(X) RP(E) PORT INTEGER(F) WINDOWSLIDE INTEGER(G) WINDOWSIZE INTEGER(H) TIMINGWINDOW. {
+  sqlite3EndStream(pParse,&X,&E,&F,&G,&H,0);
+}
 
 
 
@@ -199,6 +206,7 @@ create_stream ::= createkw temp(T) STREAM ifnotexists(E) nm(Y) dbnm(Z). {
 cmd ::= create_table create_table_args.
 create_table ::= createkw temp(T) TABLE ifnotexists(E) nm(Y) dbnm(Z). {
    sqlite3StartTable(pParse,&Y,&Z,T,0,0,E);
+
 }
 createkw(A) ::= CREATE(A).  {disableLookaside(pParse);}
 
@@ -212,6 +220,7 @@ temp(A) ::= TEMP.  {A = pParse->db->init.busy==0;}
 temp(A) ::= .      {A = 0;}
 create_table_args ::= LP columnlist conslist_opt(X) RP(E) table_options(F). {
   sqlite3EndTable(pParse,&X,&E,F,0);
+  printf("hello world");
 }
 create_table_args ::= AS select(S). {
   sqlite3EndTable(pParse,0,0,0,S);
@@ -494,6 +503,8 @@ cmd ::=  CONTINUOUS select(X).  {
   SelectDest dest = {SRT_Output, 0, 0, 0, 0, 0, 0};
   sqlite3Select(pParse, X, &dest);
   sqlite3SelectDelete(pParse->db, X);
+
+
 }
 
 //////////////////////// The SELECT statement /////////////////////////////////

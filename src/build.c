@@ -1074,6 +1074,17 @@ static void sqlite3ForceNotReadOnly(Parse *pParse){
   }
 }
 
+void sqlite3StartStream(
+        Parse *pParse,   /* Parser context */
+        Token *pName1,   /* First part of the name of the table or view */
+        Token *pName2,   /* Second part of the name of the table or view */
+        int isTemp,      /* True if this is a TEMP table */
+        int isView,      /* True if this is a VIEW */
+        int isVirtual,   /* True if this is a VIRTUAL table */
+        int noErr        /* Do nothing if table already exists */
+){}
+
+
 /*
 ** Begin constructing a new table representation in memory.  This is
 ** the first of several action routines that get called in response
@@ -2393,6 +2404,24 @@ static void markExprListImmutable(ExprList *pList){
 #endif /* SQLITE_DEBUG */
 
 
+
+
+
+
+
+void sqlite3EndStream(
+        Parse *pParse,          /* Parse context */
+        Token *pCons,           /* The ',' token after the last column defn. */
+        Token *pEnd,
+        Token *portNumber,
+        Token *windowSlide,
+        Token *windowSize,
+        int windowType
+
+){
+    sqlite3EndTable(pParse,pCons,pEnd,0,0);
+    //TODO Create thread that listens to portNumber and Inserts into stream table and deletes regarding given window
+}
 /*
 ** This routine is called to report the final ")" that terminates
 ** a CREATE TABLE statement.
@@ -2550,6 +2579,8 @@ void sqlite3EndTable(
     */
     if( p->pSelect==0 ){
       /* A regular table */
+      printf("create table ?");
+      //TODO : Create thread
       zType = "table";
       zType2 = "TABLE";
 #ifndef SQLITE_OMIT_VIEW
@@ -2706,6 +2737,7 @@ void sqlite3EndTable(
     p->addColOffset = 13 + (int)(pCons->z - pParse->sNameToken.z);
   }
 #endif
+
 }
 
 #ifndef SQLITE_OMIT_VIEW
