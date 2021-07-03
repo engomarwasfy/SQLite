@@ -1084,7 +1084,12 @@ void sqlite3StartStream(
         int isView,      /* True if this is a VIEW */
         int isVirtual,   /* True if this is a VIRTUAL table */
         int noErr        /* Do nothing if table already exists */
-){}
+) {
+    sqlite3StartTable(pParse,pName1,pName2,isTemp,isView,isVirtual,noErr);
+
+}
+
+
 
 
 /*
@@ -2410,12 +2415,8 @@ static void markExprListImmutable(ExprList *pList){
 
 
 
-void* foo(void* p){
+void* ingesterThread(void* p){
     // Print value received as argument:
-
-    printf("Value recevied as argument in starting routine: ");
-    printf("Value recevied as argument in starting routine: ");
-    printf("Value recevied as argument in starting routine: ");
 
 
     // Return reference to global variable:
@@ -2426,17 +2427,13 @@ void sqlite3EndStream(
         Parse *pParse,          /* Parse context */
         Token *pCons,           /* The ',' token after the last column defn. */
         Token *pEnd,
-        Token *portNumber,
-        Token *windowSlide,
-        Token *windowSize,
-        int windowType
+        Token *portNumber
 
 ){
     sqlite3EndTable(pParse,pCons,pEnd,0,0);
     //TODO Create thread that listens to portNumber and Inserts into stream table and deletes regarding given window
     pthread_t id;
-    printf("abc");
-    int a=pthread_create(&id, NULL, foo, 0);
+    int a=pthread_create(&id, 0, ingesterThread, 0);
     printf("%d",a);
 
 }
@@ -2761,6 +2758,39 @@ void sqlite3EndTable(
 }
 
 #ifndef SQLITE_OMIT_VIEW
+
+void* outputThread(Parse *pParse,Select *pSelect){
+    // Print value received as argument:
+    while(1) {
+        SelectDest dest = {SRT_Output, 0, 0, 0, 0, 0, 0};
+        sqlite3Select(pParse, pSelect, &dest);
+        sqlite3SelectDelete(pParse->db, pSelect);
+    }
+    // Return reference to global variable:
+    pthread_exit(0);
+}
+
+void csqlite3CreateContinuosView(
+        Parse *pParse,     /* The parsing context */
+        Token *pBegin,     /* The CREATE token that begins the statement */
+        Token *pName1,     /* The token that holds the name of the view */
+        Token *pName2,     /* The token that holds the name of the view */
+        ExprList *pCNames, /* Optional list of view column names */
+        Select *pSelect,   /* A SELECT statement that will become the new view */
+        int isTemp,        /* TRUE for a TEMPORARY view */
+        int noErr          /* Suppress error messages if VIEW already exists */
+        ){
+    sqlite3CreateView(pParse,pBegin,pName1,pName2,pCNames,pSelect,isTemp,noErr);
+    pthread_t id;
+   // int a=pthread_create(&id, 0, outputThread,pSelect);
+    while(1) {
+        sqlite3NestedParse(pParse,"SELECT * FROM x;");
+    }
+  //  printf("%d",a);
+
+
+
+}
 /*
 ** The parser calls this routine in order to create a new VIEW
 */

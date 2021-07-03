@@ -190,8 +190,8 @@ create_stream ::= createkw temp(T) STREAM ifnotexists(E) nm(Y) dbnm(Z). {
 
 
 
-create_stream_args ::=  LP columnlist conslist_opt(X) RP(E) PORT INTEGER(F) SLIDE INTEGER(G). {
-  sqlite3EndStream(pParse,&X,&E,&F,&G,0,0);
+create_stream_args ::=  LP columnlist conslist_opt(X) RP(E) PORT INTEGER(F). {
+  sqlite3EndStream(pParse,&X,&E,&F);
 
 }
 
@@ -499,12 +499,9 @@ cmd ::= DROP VIEW ifexists(E) fullname(X). {
 
 //////////////////////// The CONTINUOUS SELECT statement /////////////////////////////////
 //
-cmd ::=  CONTINUOUS select(X).  {
-  SelectDest dest = {SRT_Output, 0, 0, 0, 0, 0, 0};
-  sqlite3Select(pParse, X, &dest);
-  sqlite3SelectDelete(pParse->db, X);
-
-
+cmd ::= createkw(X) temp(T) VIEW ifnotexists(E) nm(Y) dbnm(Z) eidlist_opt(C)
+                  AS CONTINUOUS select(S).  {
+                    sqlite3CreateView(pParse, &X, &Y, &Z, C, S, T, E);
 }
 
 //////////////////////// The SELECT statement /////////////////////////////////
