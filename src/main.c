@@ -1086,7 +1086,7 @@ void sqlite3_set_last_insert_rowid(sqlite3 *db, sqlite3_int64 iRowid){
 /*
 ** Return the number of changes in the most recent call to sqlite3_exec().
 */
-int sqlite3_changes(sqlite3 *db){
+sqlite3_int64 sqlite3_changes64(sqlite3 *db){
 #ifdef SQLITE_ENABLE_API_ARMOR
   if( !sqlite3SafetyCheckOk(db) ){
     (void)SQLITE_MISUSE_BKPT;
@@ -1095,11 +1095,14 @@ int sqlite3_changes(sqlite3 *db){
 #endif
   return db->nChange;
 }
+int sqlite3_changes(sqlite3 *db){
+  return (int)sqlite3_changes64(db);
+}
 
 /*
 ** Return the number of changes since the database handle was opened.
 */
-int sqlite3_total_changes(sqlite3 *db){
+sqlite3_int64 sqlite3_total_changes64(sqlite3 *db){
 #ifdef SQLITE_ENABLE_API_ARMOR
   if( !sqlite3SafetyCheckOk(db) ){
     (void)SQLITE_MISUSE_BKPT;
@@ -1107,6 +1110,9 @@ int sqlite3_total_changes(sqlite3 *db){
   }
 #endif
   return db->nTotalChange;
+}
+int sqlite3_total_changes(sqlite3 *db){
+  return (int)sqlite3_total_changes64(db);
 }
 
 /*
@@ -3143,7 +3149,6 @@ static int openDatabase(
   ** off all other flags.
   */
   flags &=  ~( SQLITE_OPEN_DELETEONCLOSE |
-               SQLITE_OPEN_EXCLUSIVE |
                SQLITE_OPEN_MAIN_DB |
                SQLITE_OPEN_TEMP_DB | 
                SQLITE_OPEN_TRANSIENT_DB | 
@@ -4283,6 +4288,36 @@ int sqlite3_test_control(int op, ...){
        }
        break;
     }
+
+#if defined(SQLITE_DEBUG) && !defined(SQLITE_OMIT_WSD)
+    /* sqlite3_test_control(SQLITE_TESTCTRL_TUNE, id, *piValue)
+    **
+    ** If "id" is an integer between 1 and SQLITE_NTUNE then set the value
+    ** of the id-th tuning parameter to *piValue.  If "id" is between -1
+    ** and -SQLITE_NTUNE, then write the current value of the (-id)-th
+    ** tuning parameter into *piValue.
+    **
+    ** Tuning parameters are for use during transient development builds,
+    ** to help find the best values for constants in the query planner.
+    ** Access tuning parameters using the Tuning(ID) macro.  Set the
+    ** parameters in the CLI using ".testctrl tune ID VALUE".
+    **
+    ** Transient use only.  Tuning parameters should not be used in
+    ** checked-in code.
+    */
+    case SQLITE_TESTCTRL_TUNE: {
+      int id = va_arg(ap, int);
+      int *piValue = va_arg(ap, int*);
+      if( id>0 && id<=SQLITE_NTUNE ){
+        Tuning(id) = *piValue;
+      }else if( id<0 && id>=-SQLITE_NTUNE ){
+        *piValue = Tuning(-id);
+      }else{
+        rc = SQLITE_NOTFOUND;
+      }
+      break;
+    }
+#endif
   }
   va_end(ap);
 #endif /* SQLITE_UNTESTABLE */

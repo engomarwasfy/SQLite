@@ -4415,6 +4415,7 @@ static int flattenSubquery(
 typedef struct WhereConst WhereConst;
 struct WhereConst {
   Parse *pParse;   /* Parsing context */
+  u8 *pOomFault;   /* Pointer to pParse->db->mallocFailed */
   int nConst;      /* Number for COLUMN=CONSTANT terms */
   int nChng;       /* Number of times a constant is propagated */
   int bHasAffBlob; /* At least one column in apExpr[] as affinity BLOB */
@@ -4514,6 +4515,7 @@ static int propagateConstantExprRewriteOne(
   int bIgnoreAffBlob
 ){
   int i;
+  if( pConst->pOomFault[0] ) return WRC_Prune;
   if( pExpr->op!=TK_COLUMN ) return WRC_Continue;
   if( ExprHasProperty(pExpr, EP_FixedCol|EP_FromJoin) ){
     testcase( ExprHasProperty(pExpr, EP_FixedCol) );
@@ -4534,6 +4536,7 @@ static int propagateConstantExprRewriteOne(
     ExprSetProperty(pExpr, EP_FixedCol);
     assert( pExpr->pLeft==0 );
     pExpr->pLeft = sqlite3ExprDup(pConst->pParse->db, pConst->apExpr[i*2+1], 0);
+    if( pConst->pParse->db->mallocFailed ) return WRC_Prune;
     break;
   }
   return WRC_Prune;
@@ -4566,6 +4569,7 @@ static int propagateConstantExprRewrite(Walker *pWalker, Expr *pExpr){
      || pExpr->op==TK_IS
     ){
       propagateConstantExprRewriteOne(pConst, pExpr->pLeft, 0);
+      if( pConst->pOomFault[0] ) return WRC_Prune;
       if( sqlite3ExprAffinity(pExpr->pLeft)!=SQLITE_AFF_TEXT ){
         propagateConstantExprRewriteOne(pConst, pExpr->pRight, 0);
       }
@@ -4633,6 +4637,7 @@ static int propagateConstants(
   Walker w;
   int nChng = 0;
   x.pParse = pParse;
+  x.pOomFault = &pParse->db->mallocFailed;
   do{
     x.nConst = 0;
     x.nChng = 0;
@@ -5088,21 +5093,29 @@ static struct Cte *searchWith(
 ** be freed along with the Parse object. In other cases, when
 ** bFree==0, the With object will be freed along with the SELECT 
 ** statement with which it is associated.
+**
+** This routine returns a copy of pWith.  Or, if bFree is true and
+** the pWith object is destroyed immediately due to an OOM condition,
+** then this routine return NULL.
+**
+** If bFree is true, do not continue to use the pWith pointer after
+** calling this routine,  Instead, use only the return value.
 */
-void sqlite3WithPush(Parse *pParse, With *pWith, u8 bFree){
+With *sqlite3WithPush(Parse *pParse, With *pWith, u8 bFree){
   if( pWith ){
+    if( bFree ){
+      pWith = (With*)sqlite3ParserAddCleanup(pParse, 
+                      (void(*)(sqlite3*,void*))sqlite3WithDelete,
+                      pWith);
+      if( pWith==0 ) return 0;
+    }
     if( pParse->nErr==0 ){
       assert( pParse->pWith!=pWith );
       pWith->pOuter = pParse->pWith;
       pParse->pWith = pWith;
     }
-    if( bFree ){
-      sqlite3ParserAddCleanup(pParse, 
-         (void(*)(sqlite3*,void*))sqlite3WithDelete,
-         pWith);
-      testcase( pParse->earlyCleanup );
-    }
   }
+  return pWith;
 }
 
 /*
@@ -5195,6 +5208,7 @@ static int resolveFromTermToCte(
     pTab->tabFlags |= TF_Ephemeral | TF_NoVisibleRowid;
     pFrom->pSelect = sqlite3SelectDup(db, pCte->pSelect, 0);
     if( db->mallocFailed ) return 2;
+    pFrom->pSelect->selFlags |= SF_CopyCte;
     assert( pFrom->pSelect );
     pFrom->fg.isCte = 1;
     pFrom->u2.pCteUse = pCteUse;
@@ -5463,6 +5477,7 @@ static int selectExpander(Walker *pWalker, Select *p){
             pTab->zName);
         }
 #ifndef SQLITE_OMIT_VIRTUALTABLE
+        assert( SQLITE_VTABRISK_Normal==1 && SQLITE_VTABRISK_High==2 );
         if( IsVirtual(pTab)
          && pFrom->fg.fromDDL
          && ALWAYS(pTab->pVTable!=0)
