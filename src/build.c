@@ -24,6 +24,7 @@
 */
 #include "sqliteInt.h"
 #include <pthread.h>
+#include<stdio.h>
 
 
 #ifndef SQLITE_OMIT_SHARED_CACHE
@@ -2759,13 +2760,17 @@ void sqlite3EndTable(
 
 #ifndef SQLITE_OMIT_VIEW
 
-void* outputThread(Parse *pParse,Select *pSelect){
+void* outputThread(sqlite3 *db){
     // Print value received as argument:
-    while(1) {
-        SelectDest dest = {SRT_Output, 0, 0, 0, 0, 0, 0};
-        sqlite3Select(pParse, pSelect, &dest);
-        sqlite3SelectDelete(pParse->db, pSelect);
+
+     while(1) {
+    char *err_msg = 0;   
+    char *sql = "select * from view_x";
+    sqlite3_exec(db, sql, 0, 0, &err_msg);
+    sleep(1);
+
     }
+   
     // Return reference to global variable:
     pthread_exit(0);
 }
@@ -2782,14 +2787,9 @@ void csqlite3CreateContinuosView(
         ){
     sqlite3CreateView(pParse,pBegin,pName1,pName2,pCNames,pSelect,isTemp,noErr);
     pthread_t id;
-   // int a=pthread_create(&id, 0, outputThread,pSelect);
-    while(1) {
-        sqlite3NestedParse(pParse,"SELECT * FROM x;");
-    }
-  //  printf("%d",a);
-
-
-
+    int a=pthread_create(&id, 0, outputThread,pParse->db);
+    sqlite3NestedParse(pParse,"SELECT * FROM x;");
+  
 }
 /*
 ** The parser calls this routine in order to create a new VIEW
