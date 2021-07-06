@@ -2416,12 +2416,19 @@ static void markExprListImmutable(ExprList *pList){
 
 
 
-void* ingesterThread(void* p){
+void* ingesterThread(sqlite3 *db){
     // Print value received as argument:
+  while(1) {
+    char *err_msg = 0;   
+    char *sql = "insert into x values(random());";
+    sqlite3_exec(db, sql, 0, 0, &err_msg);
+    sleep(4);
 
-
+    }
+   
     // Return reference to global variable:
     pthread_exit(0);
+
 }
 
 void sqlite3EndStream(
@@ -2434,9 +2441,7 @@ void sqlite3EndStream(
     sqlite3EndTable(pParse,pCons,pEnd,0,0);
     //TODO Create thread that listens to portNumber and Inserts into stream table and deletes regarding given window
     pthread_t id;
-    int a=pthread_create(&id, 0, ingesterThread, 0);
-    printf("%d",a);
-
+    int a=pthread_create(&id, 0, ingesterThread, pParse->db);
 }
 
 
@@ -2760,15 +2765,17 @@ void sqlite3EndTable(
 
 #ifndef SQLITE_OMIT_VIEW
 
+
+
 void* outputThread(sqlite3 *db){
     // Print value received as argument:
-
      while(1) {
-    char *err_msg = 0;   
-    char *sql = "select * from view_x";
+    char *err_msg = 0;
+    char *sql = "select * from view_x;";
+    //ret = sqlite3_get_table(db,sql,&dbresult,&nrow,&ncolumn,&errmsg);
     sqlite3_exec(db, sql, 0, 0, &err_msg);
-    sleep(1);
-
+    printf("select * from view_x;");
+    sleep(5);
     }
    
     // Return reference to global variable:
