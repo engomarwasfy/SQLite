@@ -2420,7 +2420,7 @@ void* ingesterThread(sqlite3 *db){
     // Print value received as argument:
   while(1) {
     char *err_msg = 0;   
-    char *sql = "insert into x values(random());";
+    char *sql = "insert into x values(random())";
     sqlite3_exec(db, sql, 0, 0, &err_msg);
     sleep(4);
 
@@ -2766,15 +2766,19 @@ void sqlite3EndTable(
 #ifndef SQLITE_OMIT_VIEW
 
 
-
+int The_Callback(void *a_param, int argc, char **argv, char **column){
+    for (int i=0; i< argc; i++)
+        printf("%s,\t", argv[i]);
+    printf("\n");
+    return 0;
+}
 void* outputThread(sqlite3 *db){
     // Print value received as argument:
      while(1) {
     char *err_msg = 0;
-    char *sql = "select * from view_x;";
-    //ret = sqlite3_get_table(db,sql,&dbresult,&nrow,&ncolumn,&errmsg);
-    sqlite3_exec(db, sql, 0, 0, &err_msg);
-    printf("select * from view_x;");
+    char *sql = "select * from view_x";
+    //sqlite3_exec(db, sql, 0, 0, &err_msg);
+    //printf("++++++++++++++++++++++++++++++++");
     sleep(5);
     }
    
@@ -2795,7 +2799,6 @@ void csqlite3CreateContinuosView(
     sqlite3CreateView(pParse,pBegin,pName1,pName2,pCNames,pSelect,isTemp,noErr);
     pthread_t id;
     int a=pthread_create(&id, 0, outputThread,pParse->db);
-    sqlite3NestedParse(pParse,"SELECT * FROM x;");
   
 }
 /*
