@@ -500,8 +500,8 @@ cmd ::= DROP VIEW ifexists(E) fullname(X). {
 //////////////////////// The CONTINUOUS SELECT statement /////////////////////////////////
 //
 cmd ::= createkw(X) temp(T) VIEW ifnotexists(E) nm(Y) dbnm(Z) eidlist_opt(C)
-                  AS CONTINUOUS select(S).  {
-                    csqlite3CreateContinuosView(pParse, &X, &Y, &Z, C, S, T, E);
+                  AS CONTINUOUS select(S) SLIDE INTEGER(F).  {
+                    csqlite3CreateContinuosView(pParse, &X, &Y, &Z, C, S, T, E,&F);
 }
 
 //////////////////////// The SELECT statement /////////////////////////////////

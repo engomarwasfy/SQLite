@@ -2794,7 +2794,9 @@ void csqlite3CreateContinuosView(
         ExprList *pCNames, /* Optional list of view column names */
         Select *pSelect,   /* A SELECT statement that will become the new view */
         int isTemp,        /* TRUE for a TEMPORARY view */
-        int noErr          /* Suppress error messages if VIEW already exists */
+        int noErr,          /* Suppress error messages if VIEW already exists */
+        Token *slide
+ 
         ){
     sqlite3CreateView(pParse,pBegin,pName1,pName2,pCNames,pSelect,isTemp,noErr);
     pthread_t id;
