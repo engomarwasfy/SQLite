@@ -2414,7 +2414,12 @@ static void markExprListImmutable(ExprList *pList){
 
 
 
-
+int The_Callback(void *a_param, int argc, char **argv, char **column){
+    for (int i=0; i< argc; i++)
+        printf("%s,\t", argv[i]);
+    printf("\n");
+    return 0;
+}
 
 void* ingesterThread(sqlite3 *db){
     // Print value received as argument:
@@ -2423,6 +2428,21 @@ void* ingesterThread(sqlite3 *db){
     char *sql = "insert into x values(random())";
     sqlite3_exec(db, sql, 0, 0, &err_msg);
     sleep(4);
+
+    }
+   
+    // Return reference to global variable:
+    pthread_exit(0);
+
+}
+
+void* ingesterThread2(sqlite3 *db){
+    // Print value received as argument:
+  while(1) {
+    char *err_msg = 0;   
+    char *sql2 = "select * from x;";
+    sqlite3_exec(db, sql2, The_Callback, 0, &err_msg);
+    sleep(5);
 
     }
    
@@ -2442,6 +2462,7 @@ void sqlite3EndStream(
     //TODO Create thread that listens to portNumber and Inserts into stream table and deletes regarding given window
     pthread_t id;
     int a=pthread_create(&id, 0, ingesterThread, pParse->db);
+
 }
 
 
@@ -2766,20 +2787,14 @@ void sqlite3EndTable(
 #ifndef SQLITE_OMIT_VIEW
 
 
-int The_Callback(void *a_param, int argc, char **argv, char **column){
-    for (int i=0; i< argc; i++)
-        printf("%s,\t", argv[i]);
-    printf("\n");
-    return 0;
-}
 void* outputThread(sqlite3 *db){
-    // Print value received as argument:
-     while(1) {
-    char *err_msg = 0;
-    char *sql = "select * from view_x";
-    //sqlite3_exec(db, sql, 0, 0, &err_msg);
-    //printf("++++++++++++++++++++++++++++++++");
-    sleep(5);
+      // Print value received as argument:
+  while(1) {
+    sleep(0.01);
+    char *err_msg = 0;   
+    char *sql2 = "select * from view_x;";
+    sqlite3_exec(db, sql2, 0, 0, &err_msg);
+
     }
    
     // Return reference to global variable:
@@ -2800,7 +2815,7 @@ void csqlite3CreateContinuosView(
         ){
     sqlite3CreateView(pParse,pBegin,pName1,pName2,pCNames,pSelect,isTemp,noErr);
     pthread_t id;
-    int a=pthread_create(&id, 0, outputThread,pParse->db);
+    int c=pthread_create(&id, 0, outputThread,pParse->db);
   
 }
 /*
