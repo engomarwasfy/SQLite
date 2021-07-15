@@ -2421,16 +2421,27 @@ int The_Callback(void *a_param, int argc, char **argv, char **column){
     return 0;
 }
 
-void* ingesterThread(sqlite3 *db){
+void* ingesterThread(){
     // Print value received as argument:
+  
   while(1) {
+    sqlite3 *db;
+   char *zErrMsg = 0;
+   int rc;
+   rc = sqlite3_open("test.db", &db);
+   if( rc ) {
+      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+      return(0);
+   } else {
+   }
     char *err_msg = 0;   
     char *sql = "insert into x values(random())";
     sqlite3_exec(db, sql, 0, 0, &err_msg);
+    sqlite3_close(db);
     sleep(4);
-
     }
-   
+    
+
     // Return reference to global variable:
     pthread_exit(0);
 
@@ -2461,7 +2472,7 @@ void sqlite3EndStream(
     sqlite3EndTable(pParse,pCons,pEnd,0,0);
     //TODO Create thread that listens to portNumber and Inserts into stream table and deletes regarding given window
     pthread_t id;
-    int a=pthread_create(&id, 0, ingesterThread, pParse->db);
+    int a=pthread_create(&id, 0, ingesterThread, 0);
 
 }
 
@@ -2623,7 +2634,6 @@ void sqlite3EndTable(
     */
     if( p->pSelect==0 ){
       /* A regular table */
-      printf("create table ?");
       //TODO : Create thread
       zType = "table";
       zType2 = "TABLE";
@@ -2787,16 +2797,27 @@ void sqlite3EndTable(
 #ifndef SQLITE_OMIT_VIEW
 
 
-void* outputThread(sqlite3 *db){
+void* outputThread(){
       // Print value received as argument:
+   
   while(1) {
+    sqlite3 *db;
+   char *zErrMsg = 0;
+   int rc;
+   rc = sqlite3_open("test.db", &db);
+   if( rc ) {
+      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+      return(0);
+   } else {
+   }
     sleep(0.01);
     char *err_msg = 0;   
     char *sql2 = "select * from view_x;";
-    sqlite3_exec(db, sql2, 0, 0, &err_msg);
+    sqlite3_exec(db, sql2, The_Callback, 0, &err_msg);
+    sqlite3_close(db);
 
     }
-   
+    
     // Return reference to global variable:
     pthread_exit(0);
 }

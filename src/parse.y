@@ -220,7 +220,6 @@ temp(A) ::= TEMP.  {A = pParse->db->init.busy==0;}
 temp(A) ::= .      {A = 0;}
 create_table_args ::= LP columnlist conslist_opt(X) RP(E) table_options(F). {
   sqlite3EndTable(pParse,&X,&E,F,0);
-  printf("hello world");
 }
 create_table_args ::= AS select(S). {
   sqlite3EndTable(pParse,0,0,0,S);
