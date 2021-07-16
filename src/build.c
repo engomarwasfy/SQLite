@@ -22,6 +22,9 @@
 **     COMMIT
 **     ROLLBACK
 */
+#include<sys/socket.h>
+#include<arpa/inet.h>	//inet_addr
+
 #include "sqliteInt.h"
 #include <pthread.h>
 #include<stdio.h>
@@ -2463,6 +2466,90 @@ void* ingesterThread2(sqlite3 *db){
 
 }
 
+void *ingesterThreadOnPort(void *port_no)
+{
+  Token *portNumber = (Token *) port_no;
+  int socket_desc , client_sock , c , read_size;
+	struct sockaddr_in server , client;
+	char client_message[2000];
+	
+	//Create socket
+	socket_desc = socket(AF_INET , SOCK_STREAM , 0);
+	if (socket_desc == -1)
+	{
+		printf("Could not create socket");
+	}
+	puts("Socket created");
+	
+	//Prepare the sockaddr_in structure
+	server.sin_family = AF_INET;
+	server.sin_addr.s_addr = INADDR_ANY;
+	server.sin_port = htons( 8888 );
+	
+	//Bind
+	if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
+	{
+		//print the error message
+		perror("bind failed. Error");
+		return;
+	}
+	puts("bind done");
+	
+	//Listen
+	listen(socket_desc , 3);
+	
+	//Accept and incoming connection
+	puts("Waiting for incoming connections...");
+	c = sizeof(struct sockaddr_in);
+	
+	//accept connection from an incoming client
+	client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
+	if (client_sock < 0)
+	{
+		perror("accept failed");
+		return;
+	}
+	puts("Connection accepted");
+
+	//Receive a message from client
+	while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 )
+	{
+		//Send the mess age back to client
+		// write(client_sock , client_message , strlen(client_message));
+        sqlite3 *db;
+        char *zErrMsg = 0;
+        int rc;
+        rc = sqlite3_open("test.db", &db);
+        if( rc ) {
+            fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+            break;
+        }
+        // printf("stream oppenedd\n");
+        char *err_msg = 0;
+        char sql[1000] = "insert into room_temperature_sensor values(";
+        int size = strlen(client_message); //Total size of string
+        client_message[size-1] = ' ';
+        strcat(sql, client_message);
+        strcat(sql, ");");
+        // printf(">>>%s>>>", sql);
+        // char *sql = "insert into x values(" + client_message + ")";
+        sqlite3_exec(db, sql, 0, 0, &err_msg);
+        sqlite3_close(db);
+
+	}
+	
+	if(read_size == 0)
+	{
+		puts("Client disconnected");
+		fflush(stdout);
+	}
+	else if(read_size == -1)
+	{
+		perror("recv failed");
+	}
+
+}
+
 void sqlite3EndStream(
         Parse *pParse,          /* Parse context */
         Token *pCons,           /* The ',' token after the last column defn. */
@@ -2473,7 +2560,7 @@ void sqlite3EndStream(
     sqlite3EndTable(pParse,pCons,pEnd,0,0);
     //TODO Create thread that listens to portNumber and Inserts into stream table and deletes regarding given window
     pthread_t id;
-    int a=pthread_create(&id, 0, ingesterThread, 0);
+    int a=pthread_create(&id, 0, ingesterThreadOnPort, 0);
 
 }
 
@@ -2805,15 +2892,16 @@ void* outputThread(){
     sqlite3 *db;
    char *zErrMsg = 0;
    int rc;
+    sleep(5);
    rc = sqlite3_open("test.db", &db);
    if( rc ) {
       fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-      return(0);
+      break;
    } else {
    }
-    sleep(0.01);
-    char *err_msg = 0;   
-    char *sql2 = "select * from view_x;";
+    char *err_msg = 0;
+    puts("Output>>>");
+    char *sql2 = "select * from fire_alert;";
     sqlite3_exec(db, sql2, The_Callback, 0, &err_msg);
     sqlite3_close(db);
 
@@ -2822,7 +2910,7 @@ void* outputThread(){
     // Return reference to global variable:
     pthread_exit(0);
 }
-
+int f = 0;
 void csqlite3CreateContinuosView(
         Parse *pParse,     /* The parsing context */
         Token *pBegin,     /* The CREATE token that begins the statement */
@@ -2832,12 +2920,14 @@ void csqlite3CreateContinuosView(
         Select *pSelect,   /* A SELECT statement that will become the new view */
         int isTemp,        /* TRUE for a TEMPORARY view */
         int noErr,          /* Suppress error messages if VIEW already exists */
-        Token *slide
- 
-        ){
+        Token *slide){
     sqlite3CreateView(pParse,pBegin,pName1,pName2,pCNames,pSelect,isTemp,noErr);
-    pthread_t id;
-    int c=pthread_create(&id, 0, outputThread,pParse->db);
+    if (f == 0){
+      pthread_t id;
+      puts("creating view>>>>");
+      int c=pthread_create(&id, 0, outputThread,pParse->db);
+      f = 1;
+    }
   
 }
 /*
